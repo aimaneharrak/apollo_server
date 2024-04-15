@@ -8,71 +8,109 @@ const typeDefs = `
   type Product {
     name: String
     options: [String]
+    price: Int #in cents
+    collection: String
   }
 
- # type ProductVariant {
- #   product: Product
- #   variantOptions: [String]
- #   price: Int  
- # }
+  type Option {
+    name: String
+    choices: [String]
+  }
 
- # type Option {
- #   choices: [String]
- # }
-
- # type Collection {
- #   products: [Product]
- # }
+  type ProductWithOptions {
+      name: String
+      options: [Option]
+      price: Int
+      collection: String
+  }
 
   # special type
   # it list all queries that a client can execute
   # with the return type for each
   type Query {
-    product(name: String): Product
     products: [Product]
+    product(name: String): Product
+    getCollection(name: String): [Product] 
+    getOptions(name: String): [String]
+    getProductWithOptions(name: String): ProductWithOptions 
   }
 `;
 
-// dataset which matches the Book type definition
+// dataset which matches the Product type definition
 const products = [
     {
         name: "Unicolor shirt",
-        options: ["size", "color"]
+        options: ["size", "color"],
+        price: 2000,
+        collection: "Shirts",
     },
     {
-        name: "Polo Shirt",
-        options: ["collar", "size", "color"]
-    } 
+        name: "Polo shirt",
+        options: ["collar", "size", "color"],
+        price: 4000,
+        collection: "Polos",
+    }, 
 ];
+// dataset which matches the options type definition
+const options = [
+    {
+        name: "size",
+        choices: ["XS", "S", "M", "L", "XL"],
+    },
+    {
+        name: "color",
+        choices: ["red", "yellow", "gray", "white"],
+    },
+    {
+        name: "collar",
+        choices:  ["normal", "wide"],
+    },
+]
 
 
-// Resolvers are what links the dataset to the Query type 
+// Resolvers are what link the data to the query 
 const resolvers = {
     Query: {
+        products: () => products,
         product: (parent, args, contextValue, info) => {
             for (let product of products){
-                console.log(product.name)
-                console.log(args.name)
                 if (product.name == args.name)
                     return product
             }
-            return null
+            return null;
         },
-        products: () => products,
+        getCollection: (parent, args, contextValue, info) => {
+                let res = products.filter((product) => product.collection == args.name);
+                return res;
+        },
+        getOptions: (parent, args, contextValue, info) => {
+            for (let option of options){
+                if (option.name == args.name)
+                    return option.choices;
+            }
+            return null;
+        },
+        // This is to get the product with options extended
+        getProductWithOptions: (parent, args, contextValue, info) => {
+            let prod = null
+            for (let product of products){
+                if (product.name == args.name)
+                    prod = product
+            }
+            if (prod == null) return null;
+            return {
+                ...prod,
+                options: options.filter((option) => prod.options.includes(option.name))
+            };
+        }
     },
 };
 
-// The ApolloServer constructor requires two parameters: your schema
-// definition and your set of resolvers.
 const server = new ApolloServer({
   typeDefs,
   resolvers,
 });
 
-// Passing an ApolloServer instance to the `startStandaloneServer` function:
-//  1. creates an Express app
-//  2. installs your ApolloServer instance as middleware
-//  3. prepares your app to handle incoming requests
 const { url } = await startStandaloneServer(server, {
   listen: { port: 4000 },
 });
