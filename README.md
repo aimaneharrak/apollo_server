@@ -5,3 +5,7 @@ This project uses pnpm which stands for performant npm.
 
 This simple boilerplate project uses typescript.
 
+`pnpm start` to start the server
+
+I am working on a schema for Wearable Products
+
